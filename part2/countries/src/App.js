@@ -18,7 +18,6 @@ const ShowOneCountry = ({country}) => {
     axios
       .get('https://api.openweathermap.org/data/2.5/weather?q=' + country.name.common + '&appid=' + api_key + '&units=metric')
       .then(response => {
-        console.log(response.data);
         setWeather(response.data)
       })
   }, [country])
