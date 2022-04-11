@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import phonebook from './services/phonebook'
+import './index.css'
 
 const Filter = ({ filter, handleFilterChange }) => {
   return (
@@ -25,13 +26,12 @@ const PersonForm = ({ addName, newName, newNumber, handleNameChange, handleNumbe
   )
 }
 
-const Persons = ({ namesToShow }) => {
+const Persons = ({ namesToShow, deletePerson }) => {
   return (
     <div>
-      <h2>Numbers</h2>
       <ul>
         {namesToShow.map(person =>
-          <li key={person.name}>{person.name} {person.number}</li>
+          <li key={person.name}>{person.name} {person.number} <button onClick={()=> deletePerson(person)}> Delete </button></li>
         )}
       </ul>
     </div>
@@ -39,23 +39,21 @@ const Persons = ({ namesToShow }) => {
 }
 
 
-
 const App = () => {
   const [persons, setPersons] = useState([])
 
-  const hook = () =>{
-    axios
-      .get('http://localhost:3001/persons')
+  useEffect(() => {
+    phonebook
+      .getAll()
       .then(response => {
-        setPersons(response.data)
+        setPersons(response)
       })
-  }
-  
-  useEffect(hook, [])
+  }, [persons])
 
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
+  const [message, setMessage] = useState('')
 
   const addName = (event) => {
     event.preventDefault()
@@ -64,14 +62,56 @@ const App = () => {
       number: newNumber,
       id: persons.length + 1,
     }
+
     if (persons.some(person => person.name === nameObject.name)) {
-      alert(`${nameObject.name} is already added to phonebook`)
+      if (window.confirm(`${nameObject.name} is already added to phonebook, replace the old number with a new one?`)) {
+        phonebook
+          .update(persons.find(person => person.name === nameObject.name).id, nameObject)
+          .then(response => {
+            setPersons(persons.map(person => person.id === response.id ? response : person))
+          })
+          .then(() => {
+            setMessage(`Changed ${nameObject.name}'s number`)
+            setTimeout(() => {
+              setMessage('')
+            }, 5000)
+          })
+          .catch(() => {
+            setMessage(`Information of ${nameObject.name} has already been removed from server`)
+            setTimeout(() => {
+              setMessage('')
+            } , 5000)
+          })
+      }
     } else {
-      setPersons(persons.concat(nameObject))
-      setNewName('')
-      setNewNumber('')
+      phonebook
+      .create(nameObject)
+      .then(returnedPerson => {
+        setPersons(persons.concat(returnedPerson))
+        setNewName('')
+        setNewNumber('')
+      })
+      .then(() => {
+        setMessage(`Added ${nameObject.name}`)
+        setTimeout(() => {
+          setMessage('')
+        }, 5000)
+      })
     }
   }
+
+  const deletePerson = (person) => {
+    if(window.confirm("Do you really want to delete " + person.name)) {
+      phonebook.remove(person.id)
+      .then(() => {
+        setMessage(`Deleted ${person.name}`)
+        setTimeout(() => {
+          setMessage('')
+        }, 5000)
+      })
+    }
+  }
+  
 
   const handleNameChange = (event) => {
     setNewName(event.target.value)
@@ -93,9 +133,31 @@ const App = () => {
     }
   }
 
+  const Notification = ({ message }) => {
+    if(message === '') {
+      return (
+        <div></div>
+      )
+    } else if (message.includes('Added')) {
+      return (
+        <div className="success">
+          {message}
+        </div>
+      )
+    } else {
+      return (
+        <div className="error">
+          {message}
+        </div>
+      )
+    }
+  }
+
   return (
     <div>
       <h2>Phonebook</h2>
+
+      <Notification message={message} />
 
       <Filter filter={filter} handleFilterChange={handleFilterChange} />
       
@@ -105,7 +167,7 @@ const App = () => {
 
       <h2>Numbers</h2>
 
-      <Persons namesToShow={namesToShow()} />
+      <Persons namesToShow={namesToShow()} deletePerson={deletePerson} />
     </div>
   )
 }
