@@ -48,7 +48,7 @@ const App = () => {
       .then(response => {
         setPersons(response)
       })
-  }, [persons])
+  }, [])
 
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
