@@ -1,15 +1,18 @@
-const blogsRoter = require('express').Router()
+const blogsRouter = require('express').Router()
 const Blog = require('../models/blog')
 
-blogsRoter.get('/', (request, response) => {
+blogsRouter.get('/', (request, response) => {
   Blog
     .find({})
     .then(blogs => {
       response.json(blogs)
     })
+    .catch(error => {
+      response.status(400).send({ error: error.message })
+    })
 })
 
-blogsRoter.post('/', (request, response) => {
+blogsRouter.post('/', (request, response) => {
   const blog = new Blog(request.body)
 
   blog
@@ -17,6 +20,27 @@ blogsRoter.post('/', (request, response) => {
     .then(result => {
       response.status(201).json(result)
     })
+    .catch(error => {
+      response.status(400).json({ error: error.message })
+    })
 })
 
-module.exports = blogsRoter
+blogsRouter.delete('/:id', async (request, response) => {
+  await Blog.findByIdAndRemove(request.params.id)
+  response.status(204).end()
+})
+
+blogsRouter.put('/:id', async (request, response) => {
+  const body = request.body
+
+  const blog = {
+    likes: body.likes,
+  }
+
+  const updatedBlog = await Blog.findByIdAndUpdate(request.params.id, blog, {
+    new: true,
+  })
+  response.json(updatedBlog)
+})
+
+module.exports = blogsRouter
