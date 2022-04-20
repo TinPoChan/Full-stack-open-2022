@@ -133,6 +133,7 @@ test('deletion of a note', async () => {
 
   await api
     .delete(`/api/blogs/${blogToDelete.id}`)
+    .set('Authorization', `bearer ${loginUser.body.token}`)
     .expect(204)
 
   const response2 = await api
